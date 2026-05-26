@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SUPRKAY — Your Inbox, Intelligently Triaged</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --amber: #3B8BEB;
+      --amber-dim: #0C3D7A;
+      --bg: #080808;
+      --surface: #111111;
+      --surface2: #181818;
+      --border: rgba(255,255,255,0.07);
+      --border-amber: rgba(59,139,235,0.25);
+      --text: #F0EDE6;
+      --muted: #6B6861;
+      --muted2: #3A3835;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Noise texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Glow ambient */
+    .ambient {
+      position: fixed;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 400px;
+      background: radial-gradient(ellipse at center, rgba(59,139,235,0.06) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem 3rem;
+      border-bottom: 0.5px solid var(--border);
+      backdrop-filter: blur(12px);
+      background: rgba(8,8,8,0.7);
+    }
+
+    .logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.6rem;
+      letter-spacing: 0.12em;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .logo span {
+      color: var(--amber);
+    }
+
+    .nav-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      color: var(--amber);
+      background: rgba(59,139,235,0.1);
+      border: 0.5px solid var(--border-amber);
+      padding: 0.3rem 0.75rem;
+      border-radius: 2px;
+      text-transform: uppercase;
+    }
+
+    /* Hero */
+    .hero {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8rem 2rem 6rem;
+    }
+
+    .eyebrow {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 2.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .eyebrow::before, .eyebrow::after {
+      content: '';
+      display: block;
+      width: 40px;
+      height: 0.5px;
+      background: var(--amber-dim);
+    }
+
+    .hero-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(4rem, 12vw, 9rem);
+      line-height: 0.92;
+      letter-spacing: 0.02em;
+      margin-bottom: 0.25rem;
+      color: var(--text);
+    }
+
+    .hero-title .line2 {
+      color: var(--amber);
+      display: block;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      font-weight: 300;
+      color: var(--muted);
+      max-width: 520px;
+      margin: 2.5rem auto 3.5rem;
+      line-height: 1.7;
+      letter-spacing: 0.01em;
+    }
+
+    .hero-subtitle strong {
+      color: var(--text);
+      font-weight: 400;
+    }
+
+    /* Waitlist form */
+    .waitlist-form {
+      display: flex;
+      gap: 0;
+      max-width: 420px;
+      width: 100%;
+      margin: 0 auto 1rem;
+      border: 0.5px solid var(--border-amber);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .waitlist-form input[type="email"] {
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: none;
+      outline: none;
+      padding: 0.85rem 1.2rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 300;
+      color: var(--text);
+      min-width: 0;
+    }
+
+    .waitlist-form input[type="email"]::placeholder { color: var(--muted); }
+
+    .waitlist-form button {
+      background: var(--amber);
+      color: #ffffff;
+      border: none;
+      padding: 0.85rem 1.5rem;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 400;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    .waitlist-form button:hover { opacity: 0.85; }
+
+    .form-note {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+
+    .success-msg {
+      display: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--amber);
+      letter-spacing: 0.1em;
+      margin-top: 1rem;
+    }
+
+    /* Divider */
+    .divider {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      padding: 0 3rem;
+      margin: 0 auto;
+      max-width: 1100px;
+    }
+
+    .divider-line {
+      flex: 1;
+      height: 0.5px;
+      background: var(--border);
+    }
+
+    .divider-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* Features */
+    .features {
+      position: relative;
+      z-index: 1;
+      padding: 6rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 0.5px solid var(--border);
+    }
+
+    .feature-card {
+      background: var(--surface);
+      padding: 2.5rem 2rem;
+      transition: background 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card:hover {
+      background: var(--surface2);
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: transparent;
+      transition: background 0.3s;
+    }
+
+    .feature-card:hover::before {
+      background: var(--amber);
+    }
+
+    .feature-number {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .feature-icon {
+      font-size: 1.6rem;
+      margin-bottom: 1.2rem;
+      display: block;
+      line-height: 1;
+    }
+
+    .feature-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      letter-spacing: 0.06em;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+      line-height: 1.1;
+    }
+
+    .feature-desc {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.75;
+      font-weight: 300;
+    }
+
+    .feature-desc strong {
+      color: var(--text);
+      font-weight: 400;
+    }
+
+    .feature-tag {
+      display: inline-block;
+      margin-top: 1.2rem;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--amber);
+      background: rgba(59,139,235,0.08);
+      border: 0.5px solid var(--border-amber);
+      padding: 0.25rem 0.6rem;
+      border-radius: 2px;
+    }
+
+    /* Marquee strip */
+    .marquee-wrap {
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+      border-top: 0.5px solid var(--border);
+      border-bottom: 0.5px solid var(--border);
+      padding: 1rem 0;
+      margin: 2rem 0;
+    }
+
+    .marquee-track {
+      display: flex;
+      gap: 3rem;
+      white-space: nowrap;
+      animation: marquee 20s linear infinite;
+    }
+
+    .marquee-item {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .marquee-item span {
+      color: var(--amber);
+      margin: 0 0.5rem;
+    }
+
+    @keyframes marquee {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    /* The air gap section */
+    .airgap {
+      position: relative;
+      z-index: 1;
+      padding: 6rem 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .airgap-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 2rem;
+    }
+
+    .airgap-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.5rem, 7vw, 5rem);
+      letter-spacing: 0.04em;
+      line-height: 1;
+      margin-bottom: 2rem;
+    }
+
+    .airgap-title em {
+      font-style: normal;
+      color: var(--amber);
+    }
+
+    .airgap-body {
+      font-size: 1rem;
+      color: var(--muted);
+      line-height: 1.8;
+      max-width: 600px;
+      margin: 0 auto 3rem;
+    }
+
+    .airgap-body strong { color: var(--text); font-weight: 400; }
+
+    .flow-diagram {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: wrap;
+      margin: 0 auto;
+      max-width: 700px;
+    }
+
+    .flow-step {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      padding: 1rem 1.5rem;
+      text-align: center;
+      min-width: 120px;
+    }
+
+    .flow-step .icon { font-size: 1.3rem; margin-bottom: 0.4rem; display: block; }
+    .flow-step .label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .flow-arrow {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted2);
+      padding: 0 0.5rem;
+    }
+
+    .flow-step.highlight {
+      border-color: var(--border-amber);
+      background: rgba(59,139,235,0.06);
+    }
+    .flow-step.highlight .label { color: var(--amber); }
+
+    /* Footer CTA */
+    .footer-cta {
+      position: relative;
+      z-index: 1;
+      border-top: 0.5px solid var(--border);
+      padding: 6rem 2rem;
+      text-align: center;
+    }
+
+    .footer-cta h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      letter-spacing: 0.06em;
+      margin-bottom: 1rem;
+    }
+
+    .footer-cta p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 2.5rem;
+    }
+
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 0.5px solid var(--border);
+      padding: 2rem 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    footer .logo { font-size: 1.1rem; }
+
+    .footer-copy {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-up { animation: fadeUp 0.8s ease forwards; opacity: 0; }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.25s; }
+    .delay-3 { animation-delay: 0.4s; }
+    .delay-4 { animation-delay: 0.55s; }
+    .delay-5 { animation-delay: 0.7s; }
+
+    @media (max-width: 640px) {
+      nav { padding: 1.25rem 1.5rem; }
+      .hero { padding: 7rem 1.5rem 5rem; }
+      .features { padding: 4rem 1.25rem; }
+      .waitlist-form { flex-direction: column; }
+      .waitlist-form button { text-align: center; }
+      .flow-diagram { flex-direction: column; }
+      .flow-arrow { transform: rotate(90deg); }
+      footer { padding: 2rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="ambient"></div>
+
+<nav>
+  <a href="#" class="logo">SUPR<span>K</span>AY</a>
+  <div class="nav-badge">Coming Soon</div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="eyebrow fade-up delay-1">AI-Powered Email Triage</div>
+
+  <h1 class="hero-title fade-up delay-2">
+    Your inbox.<br>
+    <span class="line2">Finally intelligent.</span>
+  </h1>
+
+  <p class="hero-subtitle fade-up delay-3">
+    SUPRKAY reads your emails, knows what's truly urgent, and <strong>calls you</strong> when something can't wait.
+    Not a notification. An actual phone call.
+  </p>
+
+  <div class="waitlist-form fade-up delay-4">
+    <input type="email" id="emailInput" placeholder="your@email.com" autocomplete="email" />
+    <button onclick="handleSignup()">Get Early Access</button>
+  </div>
+
+  <div class="form-note fade-up delay-5">Early beta — iOS TestFlight &nbsp;·&nbsp; No spam, ever.</div>
+  <div class="success-msg" id="successMsg">✓ You're on the list. We'll be in touch soon.</div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-wrap">
+  <div class="marquee-track">
+    <span class="marquee-item">Gmail<span>·</span></span>
+    <span class="marquee-item">Outlook<span>·</span></span>
+    <span class="marquee-item">SPF / DKIM / DMARC Verified<span>·</span></span>
+    <span class="marquee-item">On-Device RAG<span>·</span></span>
+    <span class="marquee-item">Twilio Voice Calls<span>·</span></span>
+    <span class="marquee-item">Shadow Mode<span>·</span></span>
+    <span class="marquee-item">Zero Spam Escalation<span>·</span></span>
+    <span class="marquee-item">Privacy First<span>·</span></span>
+    <span class="marquee-item">Gmail<span>·</span></span>
+    <span class="marquee-item">Outlook<span>·</span></span>
+    <span class="marquee-item">SPF / DKIM / DMARC Verified<span>·</span></span>
+    <span class="marquee-item">On-Device RAG<span>·</span></span>
+    <span class="marquee-item">Twilio Voice Calls<span>·</span></span>
+    <span class="marquee-item">Shadow Mode<span>·</span></span>
+    <span class="marquee-item">Zero Spam Escalation<span>·</span></span>
+    <span class="marquee-item">Privacy First<span>·</span></span>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="features">
+  <div class="divider" style="margin-bottom: 4rem;">
+    <div class="divider-line"></div>
+    <div class="divider-label">Why SUPRKAY</div>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="features-grid">
+
+    <div class="feature-card">
+      <div class="feature-number">01</div>
+      <span class="feature-icon">📞</span>
+      <div class="feature-title">The Air Gap</div>
+      <p class="feature-desc">
+        When an email is <strong>genuinely urgent</strong>, SUPRKAY places a real phone call via Twilio. Not a push notification. A call. Because some emails can't wait for a screen unlock.
+      </p>
+      <span class="feature-tag">Core Differentiator</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-number">02</div>
+      <span class="feature-icon">🧠</span>
+      <div class="feature-title">Intelligent Triage</div>
+      <p class="feature-desc">
+        The AI doesn't just look for the word "Urgent." It classifies <strong>structural intent</strong> — statement, promotion, transaction, or action required — before deciding to escalate anything.
+      </p>
+      <span class="feature-tag">Anti-Spam Logic</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-number">03</div>
+      <span class="feature-icon">🔒</span>
+      <div class="feature-title">Shadow Mode</div>
+      <p class="feature-desc">
+        For 7 days, SUPRKAY shows you <strong>exactly what it would have done</strong> — before acting on anything. You approve the behaviour. Trust is earned, not assumed.
+      </p>
+      <span class="feature-tag">Trust First</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-number">04</div>
+      <span class="feature-icon">🛡️</span>
+      <div class="feature-title">Authentication Layer</div>
+      <p class="feature-desc">
+        Every sender is verified against <strong>SPF, DKIM, and DMARC</strong> at the infrastructure level before the AI even reads the email. Spoofed domains never escalate.
+      </p>
+      <span class="feature-tag">Infrastructure Level</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-number">05</div>
+      <span class="feature-icon">🗂️</span>
+      <div class="feature-title">Personal RAG</div>
+      <p class="feature-desc">
+        Your preferences and history live in an <strong>on-device vector database</strong>. The AI gets smarter about you over time — without your data ever leaving your phone.
+      </p>
+      <span class="feature-tag">Private by Design</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-number">06</div>
+      <span class="feature-icon">⚡</span>
+      <div class="feature-title">Built for Decision-Makers</div>
+      <p class="feature-desc">
+        VCs, real estate brokers, founders. Professionals whose <strong>decision velocity equals money</strong>. SUPRKAY is designed for people who cannot afford to miss the one email that matters.
+      </p>
+      <span class="feature-tag">High Stakes</span>
+    </div>
+
+  </div>
+</section>
+
+<!-- AIR GAP SECTION -->
+<section class="airgap">
+  <div class="airgap-label">How It Works</div>
+  <h2 class="airgap-title">The email reaches you.<br><em>One way or another.</em></h2>
+  <p class="airgap-body">
+    Big tech companies won't call you. They're too cautious. SUPRKAY isn't. When the AI determines an email is genuinely time-sensitive — verified sender, real urgency, your contact — <strong>your phone rings.</strong>
+  </p>
+
+  <div class="flow-diagram">
+    <div class="flow-step">
+      <span class="icon">📨</span>
+      <div class="label">Email arrives</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <span class="icon">🛡️</span>
+      <div class="label">SPF/DKIM check</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <span class="icon">🧠</span>
+      <div class="label">AI classifies intent</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step highlight">
+      <span class="icon">📞</span>
+      <div class="label">You get called</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER CTA -->
+<section class="footer-cta">
+  <h2>Don't miss your most important email.</h2>
+  <p>Join the waitlist. Be among the first on TestFlight.</p>
+
+  <div class="waitlist-form" style="max-width: 400px; margin: 0 auto 1rem;">
+    <input type="email" id="emailInput2" placeholder="your@email.com" autocomplete="email" />
+    <button onclick="handleSignup2()">Join Waitlist</button>
+  </div>
+  <div class="form-note">No spam. Early access only. iOS TestFlight.</div>
+  <div class="success-msg" id="successMsg2">✓ You're on the list. We'll be in touch soon.</div>
+</section>
+
+<footer>
+  <a href="#" class="logo">SUPR<span>K</span>AY</a>
+  <div class="footer-copy">© 2025 SUPRKAY &nbsp;·&nbsp; All rights reserved &nbsp;·&nbsp; Hyderabad, India</div>
+</footer>
+
+<script>
+  function handleSignup() {
+    var email = document.getElementById('emailInput').value;
+    if (!email || !email.includes('@')) {
+      document.getElementById('emailInput').style.borderColor = 'rgba(232,80,80,0.5)';
+      return;
+    }
+    document.getElementById('emailInput').style.borderColor = '';
+    document.querySelector('.waitlist-form').style.display = 'none';
+    document.querySelector('.form-note').style.display = 'none';
+    document.getElementById('successMsg').style.display = 'block';
+    saveEmail(email);
+  }
+
+  function handleSignup2() {
+    var email = document.getElementById('emailInput2').value;
+    if (!email || !email.includes('@')) {
+      document.getElementById('emailInput2').style.borderColor = 'rgba(232,80,80,0.5)';
+      return;
+    }
+    document.getElementById('emailInput2').style.borderColor = '';
+    var form2 = document.querySelector('.footer-cta .waitlist-form');
+    if (form2) form2.style.display = 'none';
+    document.getElementById('successMsg2').style.display = 'block';
+    saveEmail(email);
+  }
+
+  function saveEmail(email) {
+    try {
+      var list = JSON.parse(localStorage.getItem('sk_waitlist') || '[]');
+      if (!list.includes(email)) list.push(email);
+      localStorage.setItem('sk_waitlist', JSON.stringify(list));
+    } catch(e) {}
+  }
+
+  /* Enter key support */
+  document.getElementById('emailInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') handleSignup();
+  });
+  document.getElementById('emailInput2').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') handleSignup2();
+  });
+</script>
+
+</body>
+</html>
